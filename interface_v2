@@ -1,0 +1,180 @@
+import PySimpleGUI as sg
+import os.path
+import csv
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+
+def read_table():
+    sg.set_options(auto_size_buttons=True)
+    layout = [[sg.Text('Dataset', size=(16, 1)), sg.InputText(),
+               sg.FolderBrowse(key="-FOLDER-")],
+              [sg.Submit(), sg.Cancel()]]
+
+    window1 = sg.Window('Input file', layout)
+    try:
+        event, values = window1.read()
+        window1.close()
+    except:
+        window1.close()
+        return
+
+
+
+    filename = values[0]
+
+    if filename == '':
+        return
+
+    data = values
+    header_list = []
+
+# здесь скрипт тела
+    if filename is not None:
+
+        fn = filename.split('/')[-1]
+        print(fn)
+        try:
+            print("It`s ok")
+            return data, fn
+        except:
+            sg.popup_error('Error reading file')
+            window1.close()
+            return
+
+
+
+def show_stats(fn):
+
+    header_list = list(fn)
+#    data = list(1,2,3)
+#    data = stats.values.tolist()
+#    for i, d in enumerate(data):
+#       d.insert(0, list(stats.index)[i])
+    header_list = ['Feature'] + header_list
+    layout = [
+        [sg.Table(values=data,
+                  headings=header_list,
+                  font='Helvetica',
+                  pad=(10, 10),
+                  display_row_numbers=False,
+                  auto_size_columns=True,
+                  num_rows=min(25, len(data)))]
+    ]
+
+    window = sg.Window("Statistics", layout, grab_anywhere=False)
+    event, values = window.read()
+    window.close()
+
+
+
+# =====================================================#
+# Define the window's contents i.e. layout
+layout = [
+    [sg.Button('Load data', size=(10, 1), enable_events=True, key='-READ-', font='Helvetica 16')],
+    [sg.Button('Show stats', size=(15, 1), enable_events=True, key='-STATS-', font='Helvetica 16', )],
+    [sg.Button('Test', size=(15, 1), enable_events=True, key='-TEST-', font='Helvetica 16', )],
+    [sg.Text("", size=(50, 1), key='-loaded-', pad=(5, 5), font='Helvetica 14'), ],
+
+]
+
+def get_files(folder):
+#    folder = data['-FOLDER-']
+
+#    print(data)
+    try:
+        # Get list of files in folder
+        dir_list = os.listdir(folder)
+        print("yes1")
+        print(dir_list)
+
+        dnames = []
+        file_list = []
+        file_dir = []
+        for d in dir_list:
+            if os.path.isdir(os.path.join(folder, d)):
+                dnames.append(d)
+                tmp = os.listdir(os.path.join(folder, d))
+                file_list.append(tmp)
+                for t in tmp:
+                    file_dir.append(os.path.join(folder, d, t))
+        print(dnames)
+        print(file_dir)
+        return file_dir
+    except:
+        dir_list = []
+        print("no1")
+
+
+# Create the window
+window = sg.Window('Киты', layout, size=(600, 300))
+
+read_successful = False
+# Event loop
+while True:
+    event, values = window.read()
+    loaded_text = window['-loaded-']
+    if event in (sg.WIN_CLOSED, 'Exit'):
+        break
+    if event == '-READ-':
+        try:
+            data, fn = read_table()
+            read_successful = True
+            folder = data['-FOLDER-']
+            file_dir = get_files(folder)
+#сюда ручная выборка
+            print(file_dir)
+        except:
+            print("no")
+            pass
+        if read_successful:
+            print("yes")
+            loaded_text.update("Datset loaded: '{}'".format(fn))
+
+    if event == '-STATS-':
+        if read_successful:
+            show_stats(fn)
+        else:
+            loaded_text.update("No dataset was loaded")
+
+    if event == '-TEST-':
+        if read_successful:
+            folder = data['-FOLDER-']
+            print("****FOLDER****", folder)
+
+            print(data)
+            try:
+                # Get list of dirs in folder
+                dir_list = os.listdir(folder)
+                print("yes1")
+                print(dir_list)
+            except:
+                dir_list = []
+                print("no1")
+            try:
+                # Get list of files in folder
+                for d in dir_list:
+                    print("*****test*****")
+                    get_files(os.path.join(folder, d))
+                file_list = os.listdir(os.path.join(folder, d))
+                #for csv
+                oppr = [5]*(len(dir_list))
+                for i in dir_list:
+                    print(i, oppr)
+                file = open("stats.csv", "w")
+                writer = csv.writer(file)
+
+                for w in range(len(dir_list)):
+                    writer.writerow([dir_list[w], oppr[w]])
+                file.close()
+
+
+
+#сюда тест выборка
+            except:
+                file_list = []
+                print("no2")
+        else:
+            loaded_text.update("No dataset was loaded")
